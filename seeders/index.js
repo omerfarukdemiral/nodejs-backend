@@ -4,7 +4,7 @@
  */
 
 const bcrypt = require('bcrypt');
-const User = require('../model/user');
+const Wallet = require('../model/wallet');
 const authConstant = require('../constants/authConstant');
 const Role = require('../model/role');
 const ProjectRoute = require('../model/projectRoute');
@@ -20,23 +20,21 @@ async function seedUser () {
     userToBeInserted = {
       'password':'QpPCXqEiR8eGjOj',
       'isDeleted':false,
-      'username':'Caleb.Erdman69',
-      'email':'Euna_Yundt@gmail.com',
+      'walletAddress':'zw5ltxhucz',
       'isActive':true,
       'userType':authConstant.USER_TYPES.User
     };
     userToBeInserted.password = await  bcrypt.hash(userToBeInserted.password, 8);
-    let user = await dbService.updateOne(User, { 'username':'Caleb.Erdman69' }, userToBeInserted,  { upsert: true });
+    let user = await dbService.updateOne(Wallet, { 'walletAddress':'zw5ltxhucz' }, userToBeInserted,  { upsert: true });
     userToBeInserted = {
       'password':'H97DmukSybXgJTz',
       'isDeleted':false,
-      'username':'Virgil.Jacobi19',
-      'email':'Desiree_Strosin@yahoo.com',
+      'walletAddress':'lw420flpfs',
       'isActive':true,
       'userType':authConstant.USER_TYPES.Admin
     };
     userToBeInserted.password = await  bcrypt.hash(userToBeInserted.password, 8);
-    let admin = await dbService.updateOne(User, { 'username':'Virgil.Jacobi19' }, userToBeInserted,  { upsert: true });
+    let admin = await dbService.updateOne(Wallet, { 'walletAddress':'lw420flpfs' }, userToBeInserted,  { upsert: true });
     console.info('Users seeded 🍺');
   } catch (error){
     console.log('User seeder failed due to ', error.message);
@@ -1323,6 +1321,126 @@ async function seedRouteRole () {
         method: 'POST'
       },
       {
+        route: '/admin/auth/create',
+        role: 'System_User',
+        method: 'POST' 
+      },
+      {
+        route: '/admin/auth/addbulk',
+        role: 'System_User',
+        method: 'POST' 
+      },
+      {
+        route: '/admin/auth/list',
+        role: 'System_User',
+        method: 'POST' 
+      },
+      {
+        route: '/admin/auth/:id',
+        role: 'System_User',
+        method: 'GET' 
+      },
+      {
+        route: '/admin/auth/count',
+        role: 'System_User',
+        method: 'POST' 
+      },
+      {
+        route: '/admin/auth/update/:id',
+        role: 'System_User',
+        method: 'PUT' 
+      },
+      {
+        route: '/admin/auth/partial-update/:id',
+        role: 'System_User',
+        method: 'PUT'
+      },
+      {
+        route: '/admin/auth/updatebulk',
+        role: 'System_User',
+        method: 'PUT' 
+      },
+      {
+        route: '/admin/auth/softdelete/:id',
+        role: 'System_User',
+        method: 'PUT'
+      },
+      {
+        route: '/admin/auth/softdeletemany',
+        role: 'System_User',
+        method: 'PUT'
+      },
+      {
+        route: '/admin/auth/delete/:id',
+        role: 'System_User',
+        method: 'DELETE'
+      },
+      {
+        route: '/admin/auth/deletemany',
+        role: 'System_User',
+        method: 'POST'
+      },
+      {
+        route: '/admin/earnings/create',
+        role: 'System_User',
+        method: 'POST'
+      },
+      {
+        route: '/admin/earnings/addbulk',
+        role: 'System_User',
+        method: 'POST'
+      },
+      {
+        route: '/admin/earnings/list',
+        role: 'System_User',
+        method: 'POST' 
+      },
+      {
+        route: '/admin/earnings/:id',
+        role: 'System_User',
+        method: 'GET' 
+      },
+      {
+        route: '/admin/earnings/count',
+        role: 'System_User',
+        method: 'POST' 
+      },
+      {
+        route: '/admin/earnings/update/:id',
+        role: 'System_User',
+        method: 'PUT'
+      },
+      {
+        route: '/admin/earnings/partial-update/:id',
+        role: 'System_User',
+        method: 'PUT'
+      },
+      {
+        route: '/admin/earnings/updatebulk',
+        role: 'System_User',
+        method: 'PUT'
+      },
+      {
+        route: '/admin/earnings/softdelete/:id',
+        role: 'System_User',
+        method: 'PUT'
+      },
+      {
+        route: '/admin/earnings/softdeletemany',
+        role: 'System_User',
+        method: 'PUT'
+      },
+      {
+        route: '/admin/earnings/delete/:id',
+        role: 'System_User',
+        method: 'DELETE'
+      },
+      {
+        route: '/admin/earnings/deletemany',
+        role: 'System_User',
+        method: 'POST'
+      },
+      {
         route: '/admin/admin/create',
         role: 'System_User',
         method: 'POST' 
@@ -1806,10 +1924,10 @@ async function seedRouteRole () {
 async function seedUserRole (){
   try {
     const userRoles = [{
-      'username':'Caleb.Erdman69',
+      'walletAddress':'zw5ltxhucz',
       'password':'QpPCXqEiR8eGjOj'
     },{
-      'username':'Virgil.Jacobi19',
+      'walletAddress':'lw420flpfs',
       'password':'H97DmukSybXgJTz'
     }];
     const defaultRoles = await dbService.findMany(Role);

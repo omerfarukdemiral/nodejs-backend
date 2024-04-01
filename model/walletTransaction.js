@@ -4,6 +4,7 @@
  */
 
 const mongoose = require('mongoose');
+const autoIncrement = require('mongoose-sequence')(mongoose);
 const mongoosePaginate = require('mongoose-paginate-v2');
 let idValidator = require('mongoose-id-validator');
 const myCustomLabels = {
@@ -22,21 +23,25 @@ const Schema = mongoose.Schema;
 const schema = new Schema(
   {
 
-    walletId:{
+    fromwalletId:{
       type:Schema.Types.ObjectId,
-      ref:'wallet'
+      ref:'wallet',
+      required:true,
+      unique:false
     },
 
-    userId:{
+    towalletId:{
       type:Schema.Types.ObjectId,
-      ref:'user'
+      ref:'wallet',
+      required:true,
+      unique:false
     },
 
-    forOrder:{ type:Boolean },
-
-    forWallet:{ type:Boolean },
-
-    transactionAmount:{ type:Number },
+    transactionAmount:{
+      type:Number,
+      unique:false,
+      required:true
+    },
 
     isActive:{ type:Boolean },
 
@@ -46,12 +51,12 @@ const schema = new Schema(
 
     addedBy:{
       type:Schema.Types.ObjectId,
-      ref:'user'
+      ref:'wallet'
     },
 
     updatedBy:{
       type:Schema.Types.ObjectId,
-      ref:'user'
+      ref:'wallet'
     },
 
     isDeleted:{ type:Boolean }

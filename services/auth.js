@@ -3,7 +3,7 @@
  * @description :: functions used in authentication
  */
 
-const User = require('../model/user');
+const Wallet = require('../model/wallet');
 const dbService = require('../utils/dbService');
 const userTokens = require('../model/userTokens');
 const {
@@ -28,7 +28,7 @@ const uuid = require('uuid').v4;
 const generateToken = async (user,secret) => {
   return jwt.sign( {
     id:user.id,
-    'username':user.username
+    'walletAddress':user.walletAddress
   }, secret, { expiresIn: JWT.EXPIRES_IN * 60 });
 };
 
@@ -47,7 +47,7 @@ const sendEmailForLoginOtp = async (user) => {
     let otp = common.randomNumber();
     let expires = dayjs();
     expires = expires.add(6, 'hour').toISOString();
-    await dbService.updateOne(User, where, {
+    await dbService.updateOne(Wallet, where, {
       loginOTP: {
         code: otp,
         expireTime: expires 
@@ -77,8 +77,8 @@ const sendEmailForLoginOtp = async (user) => {
  */
 const loginUser = async (username,password,platform,roleAccess) => {
   try {
-    let where = { $or:[{ username:username },{ email:username }] };
-    where.isActive =  true;where.isDeleted = false;            let user = await dbService.findOne(User,where);
+    let where = { 'walletAddress':username };
+    where.isActive =  true;where.isDeleted = false;            let user = await dbService.findOne(Wallet,where);
     if (user) {
       if (user.loginRetryLimit >= MAX_LOGIN_RETRY_LIMIT){
         let now = dayjs();
@@ -92,7 +92,7 @@ const loginUser = async (username,password,platform,roleAccess) => {
                 data:`you have exceed the number of limit.you can login after ${common.getDifferenceOfTwoDatesInTime(now,limitTime)}.`
               }; 
             }   
-            await dbService.updateOne(User,{ _id:user.id },{
+            await dbService.updateOne(Wallet,{ _id:user.id },{
               loginReactiveTime:expireTime.toISOString(),
               loginRetryLimit:user.loginRetryLimit + 1  
             });
@@ -101,7 +101,7 @@ const loginUser = async (username,password,platform,roleAccess) => {
               data:`you have exceed the number of limit.you can login after ${common.getDifferenceOfTwoDatesInTime(now,expireTime)}.`
             }; 
           } else {
-            user = await dbService.updateOne(User,{ _id:user.id },{
+            user = await dbService.updateOne(Wallet,{ _id:user.id },{
               loginReactiveTime:'',
               loginRetryLimit:0
             },{ new:true });
@@ -109,7 +109,7 @@ const loginUser = async (username,password,platform,roleAccess) => {
         } else {
           // send error
           let expireTime = dayjs().add(LOGIN_REACTIVE_TIME,'minute');
-          await dbService.updateOne(User,
+          await dbService.updateOne(Wallet,
             {
               _id:user.id,
               isActive :true,
@@ -128,7 +128,7 @@ const loginUser = async (username,password,platform,roleAccess) => {
       if (password){
         const isPasswordMatched = await user.isPasswordMatch(password);
         if (!isPasswordMatched) {
-          await dbService.updateOne(User,
+          await dbService.updateOne(Wallet,
             {
               _id:user.id,
               isActive :true,
@@ -159,7 +159,7 @@ const loginUser = async (username,password,platform,roleAccess) => {
         token = await generateToken(userData,JWT.ADMIN_SECRET);
       }
       if (user.loginRetryLimit){
-        await dbService.updateOne(User,{ _id:user.id },{
+        await dbService.updateOne(Wallet,{ _id:user.id },{
           loginRetryLimit:0,
           loginReactiveTime:''
         });
@@ -207,7 +207,7 @@ const changePassword = async (params)=>{
       isActive: true,
       isDeleted: false,        
     };
-    let user = await dbService.findOne(User,where);
+    let user = await dbService.findOne(Wallet,where);
     if (user && user.id) {
       let isPasswordMatch = await user.isPasswordMatch(oldPassword);
       if (!isPasswordMatch){
@@ -217,7 +217,7 @@ const changePassword = async (params)=>{
         };
       }
       password = await bcrypt.hash(password, 8);
-      let updatedUser = dbService.updateOne(User,where,{ 'password':password });
+      let updatedUser = dbService.updateOne(Wallet,where,{ 'password':password });
       if (updatedUser) {
         return {
           flag:false,
@@ -255,7 +255,7 @@ const sendResetPasswordNotification = async (user) => {
     let token = uuid();
     let expires = dayjs();
     expires = expires.add(FORGOT_PASSWORD_WITH.EXPIRE_TIME, 'minute').toISOString();
-    await dbService.updateOne(User,where,
+    await dbService.updateOne(Wallet,where,
       {
         resetPasswordLink: {
           code: token,
@@ -318,7 +318,7 @@ const resetPassword = async (user, newPassword) => {
       isActive: true,
       isDeleted: false,        
     };
-    const dbUser = await dbService.findOne(User,where);
+    const dbUser = await dbService.findOne(Wallet,where);
     if (!dbUser) {
       return {
         flag: true,
@@ -326,7 +326,7 @@ const resetPassword = async (user, newPassword) => {
       };
     }
     newPassword = await bcrypt.hash(newPassword, 8);
-    await dbService.updateOne(User, where, {
+    await dbService.updateOne(Wallet, where, {
       'password': newPassword,
       resetPasswordLink: null,
       loginRetryLimit:0
@@ -358,8 +358,8 @@ const resetPassword = async (user, newPassword) => {
  */
 const sendLoginOTP = async (username) => {
   try {
-    let where = { $or:[{ username:username },{ email:username }] };
-    where.isActive = true;where.isDeleted = false;        let user = await dbService.findOne(User,where);
+    let where = { 'walletAddress':username };
+    where.isActive = true;where.isDeleted = false;        let user = await dbService.findOne(Wallet,where);
     if (!user){
       return {
         flag:true,
@@ -372,7 +372,7 @@ const sendLoginOTP = async (username) => {
         let limitTime = dayjs(user.loginReactiveTime);
         if (limitTime > now){
           let expireTime = dayjs().add(LOGIN_REACTIVE_TIME,'minute').toISOString();
-          await dbService.updateOne(User,where,{
+          await dbService.updateOne(Wallet,where,{
             loginReactiveTime:expireTime,
             loginRetryLimit:user.loginRetryLimit + 1  
           });
@@ -384,7 +384,7 @@ const sendLoginOTP = async (username) => {
       } else {
         // send error
         let expireTime = dayjs().add(LOGIN_REACTIVE_TIME,'minute').toISOString();
-        await dbService.updateOne(User,where,{
+        await dbService.updateOne(Wallet,where,{
           loginReactiveTime:expireTime,
           loginRetryLimit:user.loginRetryLimit + 1 
         });
@@ -434,7 +434,7 @@ const loginWithOTP = async (username, password, platform,roleAccess) => {
         isDeleted: false,            
       };
       result.loginOTP = null;
-      await dbService.updateOne(User,where,{ loginOTP: null });
+      await dbService.updateOne(Wallet,where,{ loginOTP: null });
     }
     return result;
   } catch (error) {

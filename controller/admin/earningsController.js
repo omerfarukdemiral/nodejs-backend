@@ -1,47 +1,46 @@
 /**
- * assetController.js
- * @description : exports action methods for asset.
+ * earningsController.js
+ * @description : exports action methods for earnings.
  */
 
-const Asset = require('../../model/asset');
-const assetSchemaKey = require('../../utils/validation/assetValidation');
+const Earnings = require('../../model/earnings');
+const earningsSchemaKey = require('../../utils/validation/earningsValidation');
 const validation = require('../../utils/validateRequest');
 const dbService = require('../../utils/dbService');
 const ObjectId = require('mongodb').ObjectId;
-const deleteDependentService = require('../../utils/deleteDependent');
 const utils = require('../../utils/common');
    
 /**
- * @description : create document of Asset in mongodb collection.
+ * @description : create document of Earnings in mongodb collection.
  * @param {Object} req : request including body for creating document.
  * @param {Object} res : response of created document
- * @return {Object} : created Asset. {status, message, data}
+ * @return {Object} : created Earnings. {status, message, data}
  */ 
-const addAsset = async (req, res) => {
+const addEarnings = async (req, res) => {
   try {
     let dataToCreate = { ...req.body || {} };
     let validateRequest = validation.validateParamsWithJoi(
       dataToCreate,
-      assetSchemaKey.schemaKeys);
+      earningsSchemaKey.schemaKeys);
     if (!validateRequest.isValid) {
       return res.validationError({ message : `Invalid values in parameters, ${validateRequest.message}` });
     }
     dataToCreate.addedBy = req.user.id;
-    dataToCreate = new Asset(dataToCreate);
-    let createdAsset = await dbService.create(Asset,dataToCreate);
-    return res.success({ data : createdAsset });
+    dataToCreate = new Earnings(dataToCreate);
+    let createdEarnings = await dbService.create(Earnings,dataToCreate);
+    return res.success({ data : createdEarnings });
   } catch (error) {
     return res.internalServerError({ message:error.message }); 
   }
 };
     
 /**
- * @description : create multiple documents of Asset in mongodb collection.
+ * @description : create multiple documents of Earnings in mongodb collection.
  * @param {Object} req : request including body for creating documents.
  * @param {Object} res : response of created documents.
- * @return {Object} : created Assets. {status, message, data}
+ * @return {Object} : created Earningss. {status, message, data}
  */
-const bulkInsertAsset = async (req,res)=>{
+const bulkInsertEarnings = async (req,res)=>{
   try {
     if (req.body && (!Array.isArray(req.body.data) || req.body.data.length < 1)) {
       return res.badRequest();
@@ -53,28 +52,28 @@ const bulkInsertAsset = async (req,res)=>{
         addedBy: req.user.id
       };
     }
-    let createdAssets = await dbService.create(Asset,dataToCreate);
-    createdAssets = { count: createdAssets ? createdAssets.length : 0 };
-    return res.success({ data:{ count:createdAssets.count || 0 } });
+    let createdEarningss = await dbService.create(Earnings,dataToCreate);
+    createdEarningss = { count: createdEarningss ? createdEarningss.length : 0 };
+    return res.success({ data:{ count:createdEarningss.count || 0 } });
   } catch (error){
     return res.internalServerError({ message:error.message });
   }
 };
     
 /**
- * @description : find all documents of Asset from collection based on query and options.
+ * @description : find all documents of Earnings from collection based on query and options.
  * @param {Object} req : request including option and query. {query, options : {page, limit, pagination, populate}, isCountOnly}
  * @param {Object} res : response contains data found from collection.
- * @return {Object} : found Asset(s). {status, message, data}
+ * @return {Object} : found Earnings(s). {status, message, data}
  */
-const findAllAsset = async (req,res) => {
+const findAllEarnings = async (req,res) => {
   try {
     let options = {};
     let query = {};
     let validateRequest = validation.validateFilterWithJoi(
       req.body,
-      assetSchemaKey.findFilterKeys,
-      Asset.schema.obj
+      earningsSchemaKey.findFilterKeys,
+      Earnings.schema.obj
     );
     if (!validateRequest.isValid) {
       return res.validationError({ message: `${validateRequest.message}` });
@@ -83,29 +82,29 @@ const findAllAsset = async (req,res) => {
       query = { ...req.body.query };
     }
     if (req.body.isCountOnly){
-      let totalRecords = await dbService.count(Asset, query);
+      let totalRecords = await dbService.count(Earnings, query);
       return res.success({ data: { totalRecords } });
     }
     if (req.body && typeof req.body.options === 'object' && req.body.options !== null) {
       options = { ...req.body.options };
     }
-    let foundAssets = await dbService.paginate( Asset,query,options);
-    if (!foundAssets || !foundAssets.data || !foundAssets.data.length){
+    let foundEarningss = await dbService.paginate( Earnings,query,options);
+    if (!foundEarningss || !foundEarningss.data || !foundEarningss.data.length){
       return res.recordNotFound(); 
     }
-    return res.success({ data :foundAssets });
+    return res.success({ data :foundEarningss });
   } catch (error){
     return res.internalServerError({ message:error.message });
   }
 };
         
 /**
- * @description : find document of Asset from table by id;
+ * @description : find document of Earnings from table by id;
  * @param {Object} req : request including id in request params.
  * @param {Object} res : response contains document retrieved from table.
- * @return {Object} : found Asset. {status, message, data}
+ * @return {Object} : found Earnings. {status, message, data}
  */
-const getAsset = async (req,res) => {
+const getEarnings = async (req,res) => {
   try {
     let query = {};
     if (!ObjectId.isValid(req.params.id)) {
@@ -113,11 +112,11 @@ const getAsset = async (req,res) => {
     }
     query._id = req.params.id;
     let options = {};
-    let foundAsset = await dbService.findOne(Asset,query, options);
-    if (!foundAsset){
+    let foundEarnings = await dbService.findOne(Earnings,query, options);
+    if (!foundEarnings){
       return res.recordNotFound();
     }
-    return res.success({ data :foundAsset });
+    return res.success({ data :foundEarnings });
   }
   catch (error){
     return res.internalServerError({ message:error.message });
@@ -125,17 +124,17 @@ const getAsset = async (req,res) => {
 };
     
 /**
- * @description : returns total number of documents of Asset.
+ * @description : returns total number of documents of Earnings.
  * @param {Object} req : request including where object to apply filters in req body 
  * @param {Object} res : response that returns total number of documents.
  * @return {Object} : number of documents. {status, message, data}
  */
-const getAssetCount = async (req,res) => {
+const getEarningsCount = async (req,res) => {
   try {
     let where = {};
     let validateRequest = validation.validateFilterWithJoi(
       req.body,
-      assetSchemaKey.findFilterKeys,
+      earningsSchemaKey.findFilterKeys,
     );
     if (!validateRequest.isValid) {
       return res.validationError({ message: `${validateRequest.message}` });
@@ -143,20 +142,20 @@ const getAssetCount = async (req,res) => {
     if (typeof req.body.where === 'object' && req.body.where !== null) {
       where = { ...req.body.where };
     }
-    let countedAsset = await dbService.count(Asset,where);
-    return res.success({ data : { count: countedAsset } });
+    let countedEarnings = await dbService.count(Earnings,where);
+    return res.success({ data : { count: countedEarnings } });
   } catch (error){
     return res.internalServerError({ message:error.message });
   }
 };
     
 /**
- * @description : update document of Asset with data by id.
+ * @description : update document of Earnings with data by id.
  * @param {Object} req : request including id in request params and data in request body.
- * @param {Object} res : response of updated Asset.
- * @return {Object} : updated Asset. {status, message, data}
+ * @param {Object} res : response of updated Earnings.
+ * @return {Object} : updated Earnings. {status, message, data}
  */
-const updateAsset = async (req,res) => {
+const updateEarnings = async (req,res) => {
   try {
     let dataToUpdate = {
       ...req.body,
@@ -164,29 +163,29 @@ const updateAsset = async (req,res) => {
     };
     let validateRequest = validation.validateParamsWithJoi(
       dataToUpdate,
-      assetSchemaKey.updateSchemaKeys
+      earningsSchemaKey.updateSchemaKeys
     );
     if (!validateRequest.isValid) {
       return res.validationError({ message : `Invalid values in parameters, ${validateRequest.message}` });
     }
     const query = { _id:req.params.id };
-    let updatedAsset = await dbService.updateOne(Asset,query,dataToUpdate);
-    if (!updatedAsset){
+    let updatedEarnings = await dbService.updateOne(Earnings,query,dataToUpdate);
+    if (!updatedEarnings){
       return res.recordNotFound();
     }
-    return res.success({ data :updatedAsset });
+    return res.success({ data :updatedEarnings });
   } catch (error){
     return res.internalServerError({ message:error.message });
   }
 };
 
 /**
- * @description : update multiple records of Asset with data by filter.
+ * @description : update multiple records of Earnings with data by filter.
  * @param {Object} req : request including filter and data in request body.
- * @param {Object} res : response of updated Assets.
- * @return {Object} : updated Assets. {status, message, data}
+ * @param {Object} res : response of updated Earningss.
+ * @return {Object} : updated Earningss. {status, message, data}
  */
-const bulkUpdateAsset = async (req,res)=>{
+const bulkUpdateEarnings = async (req,res)=>{
   try {
     let filter = req.body && req.body.filter ? { ...req.body.filter } : {};
     let dataToUpdate = {};
@@ -197,23 +196,23 @@ const bulkUpdateAsset = async (req,res)=>{
         updatedBy : req.user.id
       };
     }
-    let updatedAsset = await dbService.updateMany(Asset,filter,dataToUpdate);
-    if (!updatedAsset){
+    let updatedEarnings = await dbService.updateMany(Earnings,filter,dataToUpdate);
+    if (!updatedEarnings){
       return res.recordNotFound();
     }
-    return res.success({ data :{ count : updatedAsset } });
+    return res.success({ data :{ count : updatedEarnings } });
   } catch (error){
     return res.internalServerError({ message:error.message }); 
   }
 };
     
 /**
- * @description : partially update document of Asset with data by id;
+ * @description : partially update document of Earnings with data by id;
  * @param {obj} req : request including id in request params and data in request body.
- * @param {obj} res : response of updated Asset.
- * @return {obj} : updated Asset. {status, message, data}
+ * @param {obj} res : response of updated Earnings.
+ * @return {obj} : updated Earnings. {status, message, data}
  */
-const partialUpdateAsset = async (req,res) => {
+const partialUpdateEarnings = async (req,res) => {
   try {
     if (!req.params.id){
       res.badRequest({ message : 'Insufficient request parameters! id is required.' });
@@ -225,112 +224,100 @@ const partialUpdateAsset = async (req,res) => {
     };
     let validateRequest = validation.validateParamsWithJoi(
       dataToUpdate,
-      assetSchemaKey.updateSchemaKeys
+      earningsSchemaKey.updateSchemaKeys
     );
     if (!validateRequest.isValid) {
       return res.validationError({ message : `Invalid values in parameters, ${validateRequest.message}` });
     }
     const query = { _id:req.params.id };
-    let updatedAsset = await dbService.updateOne(Asset, query, dataToUpdate);
-    if (!updatedAsset) {
+    let updatedEarnings = await dbService.updateOne(Earnings, query, dataToUpdate);
+    if (!updatedEarnings) {
       return res.recordNotFound();
     }
-    return res.success({ data:updatedAsset });
+    return res.success({ data:updatedEarnings });
   } catch (error){
+    return res.internalServerError({ message:error.message });
+  }
+};
+/**
+ * @description : deactivate document of Earnings from table by id;
+ * @param {Object} req : request including id in request params.
+ * @param {Object} res : response contains updated document of Earnings.
+ * @return {Object} : deactivated Earnings. {status, message, data}
+ */
+const softDeleteEarnings = async (req,res) => {
+  try {
+    if (!req.params.id){
+      return res.badRequest({ message : 'Insufficient request parameters! id is required.' });
+    }
+    let query = { _id:req.params.id };
+    const updateBody = {
+      isDeleted: true,
+      updatedBy: req.user.id,
+    };
+    let updatedEarnings = await dbService.updateOne(Earnings, query, updateBody);
+    if (!updatedEarnings){
+      return res.recordNotFound();
+    }
+    return res.success({ data:updatedEarnings });
+  } catch (error){
+    return res.internalServerError({ message:error.message }); 
+  }
+};
+
+/**
+ * @description : delete document of Earnings from table.
+ * @param {Object} req : request including id as req param.
+ * @param {Object} res : response contains deleted document.
+ * @return {Object} : deleted Earnings. {status, message, data}
+ */
+const deleteEarnings = async (req,res) => {
+  try { 
+    if (!req.params.id){
+      return res.badRequest({ message : 'Insufficient request parameters! id is required.' });
+    }
+    const query = { _id:req.params.id };
+    const deletedEarnings = await dbService.deleteOne(Earnings, query);
+    if (!deletedEarnings){
+      return res.recordNotFound();
+    }
+    return res.success({ data :deletedEarnings });
+        
+  }
+  catch (error){
     return res.internalServerError({ message:error.message });
   }
 };
     
 /**
- * @description : deactivate document of Asset from table by id;
- * @param {Object} req : request including id in request params.
- * @param {Object} res : response contains updated document of Asset.
- * @return {Object} : deactivated Asset. {status, message, data}
- */
-const softDeleteAsset = async (req,res) => {
-  try {
-    if (!req.params.id){
-      return res.badRequest({ message : 'Insufficient request parameters! id is required.' });
-    }
-    const query = { _id:req.params.id };
-    const updateBody = {
-      isDeleted: true,
-      updatedBy: req.user.id,
-    };
-    let updatedAsset = await deleteDependentService.softDeleteAsset(query, updateBody);
-    if (!updatedAsset){
-      return res.recordNotFound();
-    }
-    return res.success({ data:updatedAsset });
-  } catch (error){
-    return res.internalServerError({ message:error.message }); 
-  }
-};
-    
-/**
- * @description : delete document of Asset from table.
- * @param {Object} req : request including id as req param.
- * @param {Object} res : response contains deleted document.
- * @return {Object} : deleted Asset. {status, message, data}
- */
-const deleteAsset = async (req,res) => {
-  try {
-    if (!req.params.id){
-      return res.badRequest({ message : 'Insufficient request parameters! id is required.' });
-    }
-    const query = { _id:req.params.id };
-    let deletedAsset;
-    if (req.body.isWarning) { 
-      deletedAsset = await deleteDependentService.countAsset(query);
-    } else {
-      deletedAsset = await deleteDependentService.deleteAsset(query);
-    }
-    if (!deletedAsset){
-      return res.recordNotFound();
-    }
-    return res.success({ data :deletedAsset });
-  }
-  catch (error){
-    return res.internalServerError({ message:error.message }); 
-  }
-};
-    
-/**
- * @description : delete documents of Asset in table by using ids.
+ * @description : delete documents of Earnings in table by using ids.
  * @param {Object} req : request including array of ids in request body.
  * @param {Object} res : response contains no of documents deleted.
  * @return {Object} : no of documents deleted. {status, message, data}
  */
-const deleteManyAsset = async (req, res) => {
+const deleteManyEarnings = async (req, res) => {
   try {
     let ids = req.body.ids;
     if (!ids || !Array.isArray(ids) || ids.length < 1) {
       return res.badRequest();
     }
     const query = { _id:{ $in:ids } };
-    let deletedAsset;
-    if (req.body.isWarning) {
-      deletedAsset = await deleteDependentService.countAsset(query);
-    }
-    else {
-      deletedAsset = await deleteDependentService.deleteAsset(query);
-    }
-    if (!deletedAsset){
+    const deletedEarnings = await dbService.deleteMany(Earnings,query);
+    if (!deletedEarnings){
       return res.recordNotFound();
     }
-    return res.success({ data :deletedAsset });
+    return res.success({ data :{ count :deletedEarnings } });
   } catch (error){
     return res.internalServerError({ message:error.message }); 
   }
 };
-    
 /**
- * @description : deactivate multiple documents of Asset from table by ids;
+ * @description : deactivate multiple documents of Earnings from table by ids;
  * @param {Object} req : request including array of ids in request body.
- * @param {Object} res : response contains updated documents of Asset.
- * @return {Object} : number of deactivated documents of Asset. {status, message, data}
+ * @param {Object} res : response contains updated documents of Earnings.
+ * @return {Object} : number of deactivated documents of Earnings. {status, message, data}
  */
-const softDeleteManyAsset = async (req,res) => {
+const softDeleteManyEarnings = async (req,res) => {
   try {
     let ids = req.body.ids;
     if (!ids || !Array.isArray(ids) || ids.length < 1) {
@@ -341,27 +328,28 @@ const softDeleteManyAsset = async (req,res) => {
       isDeleted: true,
       updatedBy: req.user.id,
     };
-    let updatedAsset = await deleteDependentService.softDeleteAsset(query, updateBody);
-    if (!updatedAsset) {
+    let updatedEarnings = await dbService.updateMany(Earnings,query, updateBody);
+    if (!updatedEarnings) {
       return res.recordNotFound();
     }
-    return res.success({ data:updatedAsset });
+    return res.success({ data:{ count :updatedEarnings } });
+        
   } catch (error){
     return res.internalServerError({ message:error.message }); 
   }
 };
 
 module.exports = {
-  addAsset,
-  bulkInsertAsset,
-  findAllAsset,
-  getAsset,
-  getAssetCount,
-  updateAsset,
-  bulkUpdateAsset,
-  partialUpdateAsset,
-  softDeleteAsset,
-  deleteAsset,
-  deleteManyAsset,
-  softDeleteManyAsset    
+  addEarnings,
+  bulkInsertEarnings,
+  findAllEarnings,
+  getEarnings,
+  getEarningsCount,
+  updateEarnings,
+  bulkUpdateEarnings,
+  partialUpdateEarnings,
+  softDeleteEarnings,
+  deleteEarnings,
+  deleteManyEarnings,
+  softDeleteManyEarnings    
 };

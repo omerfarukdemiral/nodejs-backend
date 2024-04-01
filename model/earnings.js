@@ -1,10 +1,9 @@
 /**
- * asset.js
- * @description :: model of a database collection asset
+ * earnings.js
+ * @description :: model of a database collection earnings
  */
 
 const mongoose = require('mongoose');
-const autoIncrement = require('mongoose-sequence')(mongoose);
 const mongoosePaginate = require('mongoose-paginate-v2');
 let idValidator = require('mongoose-id-validator');
 const myCustomLabels = {
@@ -23,31 +22,21 @@ const Schema = mongoose.Schema;
 const schema = new Schema(
   {
 
-    name:{ type:String },
-
-    pool:{
-      type:Number,
-      required:true,
-      unique:false
-    },
-
-    minInvestment:{
-      unique:false,
-      type:Number,
+    userId:{
+      type:Schema.Types.ObjectId,
+      ref:'user',
       required:true
     },
 
-    maxInvestment:{ type:Number },
-
-    category:{
+    assetId:{
       type:Schema.Types.ObjectId,
-      ref:'assetCategory'
+      ref:'asset',
+      required:true
     },
 
-    subCategory:{
-      type:Schema.Types.ObjectId,
-      ref:'assetCategory'
-    },
+    monthlEarnings:{ type:String },
+
+    isDeleted:{ type:Boolean },
 
     isActive:{ type:Boolean },
 
@@ -63,9 +52,7 @@ const schema = new Schema(
     updatedBy:{
       type:Schema.Types.ObjectId,
       ref:'wallet'
-    },
-
-    isDeleted:{ type:Boolean }
+    }
   }
   ,{ 
     timestamps: { 
@@ -101,5 +88,5 @@ schema.method('toJSON', function () {
 });
 schema.plugin(mongoosePaginate);
 schema.plugin(idValidator);
-const asset = mongoose.model('asset',schema);
-module.exports = asset;
+const earnings = mongoose.model('earnings',schema);
+module.exports = earnings;

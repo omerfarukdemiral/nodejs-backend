@@ -8,7 +8,7 @@ const {
   Strategy, ExtractJwt 
 } = require('passport-jwt');
 const { JWT } = require('../constants/authConstant');
-const User = require('../model/user');
+const Wallet = require('../model/wallet');
 
 const adminPassportStrategy = (passport) => {
   const options = {};
@@ -17,7 +17,7 @@ const adminPassportStrategy = (passport) => {
   passport.use('admin-rule',
     new Strategy(options, async (payload, done) => {
       try {
-        const result = await User.findOne({ _id: payload.id });
+        const result = await Wallet.findOne({ _id: payload.id });
         if (result) {
           return done(null, result.toJSON());
         }

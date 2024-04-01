@@ -1,5 +1,5 @@
 {
-  "id": "94132f2c-168f-49b7-88f3-d21444b460a4",
+  "id": "a1dea412-9509-4df8-b932-801492a86def",
   "name": "nodejs_backend_environment",
   "values": [
     {
@@ -14,6 +14,6 @@
     }
   ],
   "_postman_variable_scope": "environment",
-  "_postman_exported_at": "2024-01-22T14:20:44.360Z",
+  "_postman_exported_at": "2024-04-01T09:06:57.677Z",
   "_postman_exported_using": "Postman"
 }

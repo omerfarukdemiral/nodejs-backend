@@ -19,6 +19,7 @@ const client = new MongoClient(uri, {
 });
 
 let insertedUser = {};
+let insertedWallet = {};
 
 /**
  * @description : model dependencies resolver
@@ -30,17 +31,24 @@ beforeAll(async function (){
 
     const user = dbInstance.collection('users');
     insertedUser = await user.insertOne({
-      walletId: 'payment',
-      userType: 168,
-      email: 'Dee_Mitchell10@yahoo.com',
-      mobileNo: '(299) 626-3869',
-      password: 'F5n2_ZCUokRdxcw',
-      username: 'Ena_Legros',
+      walletAddress: 'Street',
+      userType: 362,
+      id: '660a7931de603400b5711aca'
+    });
+    const wallet = dbInstance.collection('wallets');
+    insertedWallet = await wallet.insertOne({
+      userId: '660a7931de603400b5711ad2',
+      walletAddress: 'sticky',
+      walletAmount: 710,
+      userType: 583,
+      email: 'Rod.Toy82@yahoo.com',
+      mobileNo: '(964) 982-5354',
+      password: 'M3kfK2fBAotwiQS',
       loginOTP: {},
       resetPasswordLink: {},
       loginRetryLimit: 398,
-      loginReactiveTime: '2024-05-29T03:54:57.682Z',
-      id: '65ae79bc72b0e32d16a705d1'
+      loginReactiveTime: '2024-12-24T10:06:47.804Z',
+      id: '660a7931de603400b5711ad3'
     });
   }
   catch (error) {
@@ -54,18 +62,19 @@ beforeAll(async function (){
 // test cases
 
 describe('POST /register -> if email and username is given', () => {
-  test('should register a user', async () => {
+  test('should register a wallet', async () => {
     let registeredUser = await request(app)
       .post('/admin/auth/register')
       .send({
-        'walletId':'Ariary',
+        'userId':insertedUser.insertedId,
+        'walletAddress':'state',
+        'walletAmount':858,
         'userType':authConstant.USER_TYPES.User,
-        'email':'Jailyn_Veum93@hotmail.com',
-        'mobileNo':'(261) 334-7823',
-        'password':'v9FymU8BOaBYFzI',
-        'username':'Easton_Mohr',
-        'addedBy':insertedUser.insertedId,
-        'updatedBy':insertedUser.insertedId
+        'email':'Donald_Carroll@yahoo.com',
+        'mobileNo':'(694) 695-5493',
+        'password':'8dNZ4NaqQ1KzGjT',
+        'addedBy':insertedWallet.insertedId,
+        'updatedBy':insertedWallet.insertedId
       });
     expect(registeredUser.statusCode).toBe(200);
     expect(registeredUser.body.status).toBe('SUCCESS');
@@ -75,34 +84,34 @@ describe('POST /register -> if email and username is given', () => {
 
 describe('POST /forgot-password -> if email has not passed from request body', () => {
   test('should return bad request status and insufficient parameters', async () => {
-    let user = await request(app)
+    let wallet = await request(app)
       .post('/admin/auth/forgot-password')
       .send({ email: '' });
 
-    expect(user.statusCode).toBe(400);
-    expect(user.body.status).toBe('BAD_REQUEST');
+    expect(wallet.statusCode).toBe(400);
+    expect(wallet.body.status).toBe('BAD_REQUEST');
   });
 });
 
 describe('POST /forgot-password -> if email passed from request body is not available in database ', () => {
   test('should return record not found status', async () => {
-    let user = await request(app)
+    let wallet = await request(app)
       .post('/admin/auth/forgot-password')
       .send({ 'email': 'unavailable.email@hotmail.com', });
 
-    expect(user.statusCode).toBe(404);
-    expect(user.body.status).toBe('RECORD_NOT_FOUND');
+    expect(wallet.statusCode).toBe(404);
+    expect(wallet.body.status).toBe('RECORD_NOT_FOUND');
   });
 });
 
 describe('POST /forgot-password -> if email passed from request body is valid and OTP sent successfully', () => {
   test('should return success message', async () => {
-    let user = await request(app)
+    let wallet = await request(app)
       .post('/admin/auth/forgot-password')
-      .send({ 'email':'Jailyn_Veum93@hotmail.com', });
+      .send({ 'email':'Donald_Carroll@yahoo.com', });
 
-    expect(user.statusCode).toBe(200);
-    expect(user.body.status).toBe('SUCCESS');
+    expect(wallet.statusCode).toBe(200);
+    expect(wallet.body.status).toBe('SUCCESS');
   });
 });
 
@@ -112,20 +121,20 @@ describe('POST /validate-otp -> OTP is sent in request body and OTP is correct',
       .post('/admin/auth/login')
       .send(
         {
-          username: 'Easton_Mohr',
-          password: 'v9FymU8BOaBYFzI'
+          username: 'state',
+          password: '8dNZ4NaqQ1KzGjT'
         }).then(login => () => {
         return request(app)
-          .get(`/admin/user/${login.body.data.id}`)
+          .get(`/admin/wallet/${login.body.data.id}`)
           .set({
             Accept: 'application/json',
             Authorization: `Bearer ${login.body.data.token}`
           }).then(foundUser => {
             return request(app)
               .post('/admin/auth/validate-otp')
-              .send({ 'otp': foundUser.body.data.resetPasswordLink.code, }).then(user => {
-                expect(user.statusCode).toBe(200);
-                expect(user.body.status).toBe('SUCCESS');
+              .send({ 'otp': foundUser.body.data.resetPasswordLink.code, }).then(wallet => {
+                expect(wallet.statusCode).toBe(200);
+                expect(wallet.body.status).toBe('SUCCESS');
               });
           });
       });
@@ -134,24 +143,24 @@ describe('POST /validate-otp -> OTP is sent in request body and OTP is correct',
 
 describe('POST /validate-otp -> if OTP is incorrect or OTP has expired', () => {
   test('should return invalid OTP', async () => {
-    let user = await request(app)
+    let wallet = await request(app)
       .post('/admin/auth/validate-otp')
       .send({ 'otp': '12334' });
     
-    expect(user.statusCode).toBe(200);
-    expect(user.body.status).toBe('FAILURE');
+    expect(wallet.statusCode).toBe(200);
+    expect(wallet.body.status).toBe('FAILURE');
     
   });
 });
 
 describe('POST /validate-otp -> if request body is empty or OTP has not been sent in body', () => {
   test('should return insufficient parameter', async () => {
-    let user = await request(app)
+    let wallet = await request(app)
       .post('/admin/auth/validate-otp')
       .send({});
 
-    expect(user.statusCode).toBe(400);
-    expect(user.body.status).toBe('BAD_REQUEST');
+    expect(wallet.statusCode).toBe(400);
+    expect(wallet.body.status).toBe('BAD_REQUEST');
   });
 });
 
@@ -161,11 +170,11 @@ describe('PUT /reset-password -> code is sent in request body and code is correc
       .post('/admin/auth/login')
       .send(
         {
-          username: 'Easton_Mohr',
-          password: 'v9FymU8BOaBYFzI'
+          username: 'state',
+          password: '8dNZ4NaqQ1KzGjT'
         }).then(login => () => {
         return request(app)
-          .get(`/admin/user/${login.body.data.id}`)
+          .get(`/admin/wallet/${login.body.data.id}`)
           .set({
             Accept: 'application/json',
             Authorization: `Bearer ${login.body.data.token}`
@@ -175,9 +184,9 @@ describe('PUT /reset-password -> code is sent in request body and code is correc
               .send({
                 'code': foundUser.body.data.resetPasswordLink.code,
                 'newPassword':'newPassword'
-              }).then(user => {
-                expect(user.statusCode).toBe(200);
-                expect(user.body.status).toBe('SUCCESS');
+              }).then(wallet => {
+                expect(wallet.statusCode).toBe(200);
+                expect(wallet.body.status).toBe('SUCCESS');
               });
           });
       });
@@ -186,26 +195,26 @@ describe('PUT /reset-password -> code is sent in request body and code is correc
 
 describe('PUT /reset-password -> if request body is empty or code/newPassword is not given', () => {
   test('should return insufficient parameter', async () => {
-    let user = await request(app)
+    let wallet = await request(app)
       .put('/admin/auth/reset-password')
       .send({});
     
-    expect(user.statusCode).toBe(400);
-    expect(user.body.status).toBe('BAD_REQUEST');
+    expect(wallet.statusCode).toBe(400);
+    expect(wallet.body.status).toBe('BAD_REQUEST');
   });
 });
 
 describe('PUT /reset-password -> if code is invalid', () => {
   test('should return invalid code', async () => {
-    let user = await request(app)
+    let wallet = await request(app)
       .put('/admin/auth/reset-password')
       .send({
         'code': '123',
         'newPassword': 'testPassword'
       });
 
-    expect(user.statusCode).toBe(200);
-    expect(user.body.status).toBe('FAILURE');
+    expect(wallet.statusCode).toBe(200);
+    expect(wallet.body.status).toBe('FAILURE');
 
   });
 });

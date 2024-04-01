@@ -6,6 +6,11 @@
 const mongoose = require('mongoose');
 const mongoosePaginate = require('mongoose-paginate-v2');
 let idValidator = require('mongoose-id-validator');
+const bcrypt = require('bcrypt');
+const { USER_TYPES } = require('../constants/authConstant');
+const { convertObjectToEnum } = require('../utils/common');
+const authConstantEnum = require('../constants/authConstant');
+        
 const myCustomLabels = {
   totalDocs: 'itemCount',
   docs: 'data',
@@ -39,15 +44,44 @@ const schema = new Schema(
 
     addedBy:{
       type:Schema.Types.ObjectId,
-      ref:'user'
+      ref:'wallet'
     },
 
     updatedBy:{
       type:Schema.Types.ObjectId,
-      ref:'user'
+      ref:'wallet'
     },
 
-    isDeleted:{ type:Boolean }
+    userType:{
+      type:Number,
+      enum:convertObjectToEnum(USER_TYPES),
+      required:true
+    },
+
+    email:{ type:String },
+
+    mobileNo:{ type:String },
+
+    password:{ type:String },
+
+    isDeleted:{ type:Boolean },
+
+    loginOTP:{
+      code:String,
+      expireTime:Date
+    },
+
+    resetPasswordLink:{
+      code:String,
+      expireTime:Date
+    },
+
+    loginRetryLimit:{
+      type:Number,
+      default:0
+    },
+
+    loginReactiveTime:{ type:Date }
   }
   ,{ 
     timestamps: { 
@@ -59,6 +93,9 @@ const schema = new Schema(
 schema.pre('save', async function (next) {
   this.isDeleted = false;
   this.isActive = true;
+  if (this.password){
+    this.password = await bcrypt.hash(this.password, 8);
+  }
   next();
 });
 
@@ -73,11 +110,16 @@ schema.pre('insertMany', async function (next, docs) {
   next();
 });
 
+schema.methods.isPasswordMatch = async function (password) {
+  const user = this;
+  return bcrypt.compare(password, user.password);
+};
 schema.method('toJSON', function () {
   const {
     _id, __v, ...object 
   } = this.toObject({ virtuals:true });
   object.id = _id;
+  delete object.password;
      
   return object;
 });

@@ -3,6 +3,8 @@
  * @description :: exports deleteDependent service for project.
  */
 
+let Auth = require('../model/auth');
+let Earnings = require('../model/earnings');
 let Admin = require('../model/admin');
 let User = require('../model/user');
 let Asset = require('../model/asset');
@@ -19,6 +21,24 @@ let RouteRole = require('../model/routeRole');
 let UserRole = require('../model/userRole');
 let dbService = require('.//dbService');
 
+const deleteAuth = async (filter) =>{
+  try {
+    let response  = await dbService.deleteMany(Auth,filter);
+    return response;
+  } catch (error){
+    throw new Error(error.message);
+  }
+};
+
+const deleteEarnings = async (filter) =>{
+  try {
+    let response  = await dbService.deleteMany(Earnings,filter);
+    return response;
+  } catch (error){
+    throw new Error(error.message);
+  }
+};
+
 const deleteAdmin = async (filter) =>{
   try {
     let response  = await dbService.deleteMany(Admin,filter);
@@ -34,60 +54,16 @@ const deleteUser = async (filter) =>{
     if (user && user.length){
       user = user.map((obj) => obj.id);
 
-      const adminFilter = { $or: [{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
-      const adminCnt = await dbService.deleteMany(Admin,adminFilter);
+      const earningsFilter = { $or: [{ userId : { $in : user } }] };
+      const earningsCnt = await dbService.deleteMany(Earnings,earningsFilter);
 
-      const userFilter = { $or: [{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
-      const userCnt = await dbService.deleteMany(User,userFilter);
-
-      const assetFilter = { $or: [{ sellerId : { $in : user } },{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
-      const assetCnt = await dbService.deleteMany(Asset,assetFilter);
-
-      const assetCategoryFilter = { $or: [{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
-      const assetCategoryCnt = await dbService.deleteMany(AssetCategory,assetCategoryFilter);
-
-      const orderFilter = { $or: [{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
-      const orderCnt = await dbService.deleteMany(Order,orderFilter);
-
-      const stateFilter = { $or: [{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
-      const stateCnt = await dbService.deleteMany(State,stateFilter);
-
-      const walletFilter = { $or: [{ userId : { $in : user } },{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
+      const walletFilter = { $or: [{ userId : { $in : user } }] };
       const walletCnt = await dbService.deleteMany(Wallet,walletFilter);
-
-      const walletTransactionFilter = { $or: [{ userId : { $in : user } },{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
-      const walletTransactionCnt = await dbService.deleteMany(WalletTransaction,walletTransactionFilter);
-
-      const userTokensFilter = { $or: [{ userId : { $in : user } },{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
-      const userTokensCnt = await dbService.deleteMany(UserTokens,userTokensFilter);
-
-      const roleFilter = { $or: [{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
-      const roleCnt = await dbService.deleteMany(Role,roleFilter);
-
-      const projectRouteFilter = { $or: [{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
-      const projectRouteCnt = await dbService.deleteMany(ProjectRoute,projectRouteFilter);
-
-      const routeRoleFilter = { $or: [{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
-      const routeRoleCnt = await dbService.deleteMany(RouteRole,routeRoleFilter);
-
-      const userRoleFilter = { $or: [{ userId : { $in : user } },{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
-      const userRoleCnt = await dbService.deleteMany(UserRole,userRoleFilter);
 
       let deleted  = await dbService.deleteMany(User,filter);
       let response = {
-        admin :adminCnt,
-        user :userCnt + deleted,
-        asset :assetCnt,
-        assetCategory :assetCategoryCnt,
-        order :orderCnt,
-        state :stateCnt,
+        earnings :earningsCnt,
         wallet :walletCnt,
-        walletTransaction :walletTransactionCnt,
-        userTokens :userTokensCnt,
-        role :roleCnt,
-        projectRoute :projectRouteCnt,
-        routeRole :routeRoleCnt,
-        userRole :userRoleCnt,
       };
       return response; 
     } else {
@@ -101,8 +77,20 @@ const deleteUser = async (filter) =>{
 
 const deleteAsset = async (filter) =>{
   try {
-    let response  = await dbService.deleteMany(Asset,filter);
-    return response;
+    let asset = await dbService.findMany(Asset,filter);
+    if (asset && asset.length){
+      asset = asset.map((obj) => obj.id);
+
+      const earningsFilter = { $or: [{ assetId : { $in : asset } }] };
+      const earningsCnt = await dbService.deleteMany(Earnings,earningsFilter);
+
+      let deleted  = await dbService.deleteMany(Asset,filter);
+      let response = { earnings :earningsCnt, };
+      return response; 
+    } else {
+      return {  asset : 0 };
+    }
+
   } catch (error){
     throw new Error(error.message);
   }
@@ -159,11 +147,69 @@ const deleteWallet = async (filter) =>{
     if (wallet && wallet.length){
       wallet = wallet.map((obj) => obj.id);
 
-      const walletTransactionFilter = { $or: [{ walletId : { $in : wallet } }] };
+      const authFilter = { $or: [{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const authCnt = await dbService.deleteMany(Auth,authFilter);
+
+      const earningsFilter = { $or: [{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const earningsCnt = await dbService.deleteMany(Earnings,earningsFilter);
+
+      const adminFilter = { $or: [{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const adminCnt = await dbService.deleteMany(Admin,adminFilter);
+
+      const userFilter = { $or: [{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const userCnt = await dbService.deleteMany(User,userFilter);
+
+      const assetFilter = { $or: [{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const assetCnt = await dbService.deleteMany(Asset,assetFilter);
+
+      const assetCategoryFilter = { $or: [{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const assetCategoryCnt = await dbService.deleteMany(AssetCategory,assetCategoryFilter);
+
+      const orderFilter = { $or: [{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const orderCnt = await dbService.deleteMany(Order,orderFilter);
+
+      const stateFilter = { $or: [{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const stateCnt = await dbService.deleteMany(State,stateFilter);
+
+      const walletFilter = { $or: [{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const walletCnt = await dbService.deleteMany(Wallet,walletFilter);
+
+      const walletTransactionFilter = { $or: [{ fromwalletId : { $in : wallet } },{ towalletId : { $in : wallet } },{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
       const walletTransactionCnt = await dbService.deleteMany(WalletTransaction,walletTransactionFilter);
 
+      const userTokensFilter = { $or: [{ userId : { $in : wallet } },{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const userTokensCnt = await dbService.deleteMany(UserTokens,userTokensFilter);
+
+      const roleFilter = { $or: [{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const roleCnt = await dbService.deleteMany(Role,roleFilter);
+
+      const projectRouteFilter = { $or: [{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const projectRouteCnt = await dbService.deleteMany(ProjectRoute,projectRouteFilter);
+
+      const routeRoleFilter = { $or: [{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const routeRoleCnt = await dbService.deleteMany(RouteRole,routeRoleFilter);
+
+      const userRoleFilter = { $or: [{ userId : { $in : wallet } },{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const userRoleCnt = await dbService.deleteMany(UserRole,userRoleFilter);
+
       let deleted  = await dbService.deleteMany(Wallet,filter);
-      let response = { walletTransaction :walletTransactionCnt, };
+      let response = {
+        auth :authCnt,
+        earnings :earningsCnt,
+        admin :adminCnt,
+        user :userCnt,
+        asset :assetCnt,
+        assetCategory :assetCategoryCnt,
+        order :orderCnt,
+        state :stateCnt,
+        wallet :walletCnt + deleted,
+        walletTransaction :walletTransactionCnt,
+        userTokens :userTokensCnt,
+        role :roleCnt,
+        projectRoute :projectRouteCnt,
+        routeRole :routeRoleCnt,
+        userRole :userRoleCnt,
+      };
       return response; 
     } else {
       return {  wallet : 0 };
@@ -267,6 +313,24 @@ const deleteUserRole = async (filter) =>{
   }
 };
 
+const countAuth = async (filter) =>{
+  try {
+    const authCnt =  await dbService.count(Auth,filter);
+    return { auth : authCnt };
+  } catch (error){
+    throw new Error(error.message);
+  }
+};
+
+const countEarnings = async (filter) =>{
+  try {
+    const earningsCnt =  await dbService.count(Earnings,filter);
+    return { earnings : earningsCnt };
+  } catch (error){
+    throw new Error(error.message);
+  }
+};
+
 const countAdmin = async (filter) =>{
   try {
     const adminCnt =  await dbService.count(Admin,filter);
@@ -282,59 +346,15 @@ const countUser = async (filter) =>{
     if (user && user.length){
       user = user.map((obj) => obj.id);
 
-      const adminFilter = { $or: [{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
-      const adminCnt =  await dbService.count(Admin,adminFilter);
+      const earningsFilter = { $or: [{ userId : { $in : user } }] };
+      const earningsCnt =  await dbService.count(Earnings,earningsFilter);
 
-      const userFilter = { $or: [{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
-      const userCnt =  await dbService.count(User,userFilter);
-
-      const assetFilter = { $or: [{ sellerId : { $in : user } },{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
-      const assetCnt =  await dbService.count(Asset,assetFilter);
-
-      const assetCategoryFilter = { $or: [{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
-      const assetCategoryCnt =  await dbService.count(AssetCategory,assetCategoryFilter);
-
-      const orderFilter = { $or: [{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
-      const orderCnt =  await dbService.count(Order,orderFilter);
-
-      const stateFilter = { $or: [{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
-      const stateCnt =  await dbService.count(State,stateFilter);
-
-      const walletFilter = { $or: [{ userId : { $in : user } },{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
+      const walletFilter = { $or: [{ userId : { $in : user } }] };
       const walletCnt =  await dbService.count(Wallet,walletFilter);
 
-      const walletTransactionFilter = { $or: [{ userId : { $in : user } },{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
-      const walletTransactionCnt =  await dbService.count(WalletTransaction,walletTransactionFilter);
-
-      const userTokensFilter = { $or: [{ userId : { $in : user } },{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
-      const userTokensCnt =  await dbService.count(UserTokens,userTokensFilter);
-
-      const roleFilter = { $or: [{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
-      const roleCnt =  await dbService.count(Role,roleFilter);
-
-      const projectRouteFilter = { $or: [{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
-      const projectRouteCnt =  await dbService.count(ProjectRoute,projectRouteFilter);
-
-      const routeRoleFilter = { $or: [{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
-      const routeRoleCnt =  await dbService.count(RouteRole,routeRoleFilter);
-
-      const userRoleFilter = { $or: [{ userId : { $in : user } },{ addedBy : { $in : user } },{ updatedBy : { $in : user } }] };
-      const userRoleCnt =  await dbService.count(UserRole,userRoleFilter);
-
       let response = {
-        admin : adminCnt,
-        user : userCnt,
-        asset : assetCnt,
-        assetCategory : assetCategoryCnt,
-        order : orderCnt,
-        state : stateCnt,
+        earnings : earningsCnt,
         wallet : walletCnt,
-        walletTransaction : walletTransactionCnt,
-        userTokens : userTokensCnt,
-        role : roleCnt,
-        projectRoute : projectRouteCnt,
-        routeRole : routeRoleCnt,
-        userRole : userRoleCnt,
       };
       return response; 
     } else {
@@ -347,8 +367,18 @@ const countUser = async (filter) =>{
 
 const countAsset = async (filter) =>{
   try {
-    const assetCnt =  await dbService.count(Asset,filter);
-    return { asset : assetCnt };
+    let asset = await dbService.findMany(Asset,filter);
+    if (asset && asset.length){
+      asset = asset.map((obj) => obj.id);
+
+      const earningsFilter = { $or: [{ assetId : { $in : asset } }] };
+      const earningsCnt =  await dbService.count(Earnings,earningsFilter);
+
+      let response = { earnings : earningsCnt, };
+      return response; 
+    } else {
+      return {  asset : 0 };
+    }
   } catch (error){
     throw new Error(error.message);
   }
@@ -403,10 +433,68 @@ const countWallet = async (filter) =>{
     if (wallet && wallet.length){
       wallet = wallet.map((obj) => obj.id);
 
-      const walletTransactionFilter = { $or: [{ walletId : { $in : wallet } }] };
+      const authFilter = { $or: [{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const authCnt =  await dbService.count(Auth,authFilter);
+
+      const earningsFilter = { $or: [{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const earningsCnt =  await dbService.count(Earnings,earningsFilter);
+
+      const adminFilter = { $or: [{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const adminCnt =  await dbService.count(Admin,adminFilter);
+
+      const userFilter = { $or: [{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const userCnt =  await dbService.count(User,userFilter);
+
+      const assetFilter = { $or: [{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const assetCnt =  await dbService.count(Asset,assetFilter);
+
+      const assetCategoryFilter = { $or: [{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const assetCategoryCnt =  await dbService.count(AssetCategory,assetCategoryFilter);
+
+      const orderFilter = { $or: [{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const orderCnt =  await dbService.count(Order,orderFilter);
+
+      const stateFilter = { $or: [{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const stateCnt =  await dbService.count(State,stateFilter);
+
+      const walletFilter = { $or: [{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const walletCnt =  await dbService.count(Wallet,walletFilter);
+
+      const walletTransactionFilter = { $or: [{ fromwalletId : { $in : wallet } },{ towalletId : { $in : wallet } },{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
       const walletTransactionCnt =  await dbService.count(WalletTransaction,walletTransactionFilter);
 
-      let response = { walletTransaction : walletTransactionCnt, };
+      const userTokensFilter = { $or: [{ userId : { $in : wallet } },{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const userTokensCnt =  await dbService.count(UserTokens,userTokensFilter);
+
+      const roleFilter = { $or: [{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const roleCnt =  await dbService.count(Role,roleFilter);
+
+      const projectRouteFilter = { $or: [{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const projectRouteCnt =  await dbService.count(ProjectRoute,projectRouteFilter);
+
+      const routeRoleFilter = { $or: [{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const routeRoleCnt =  await dbService.count(RouteRole,routeRoleFilter);
+
+      const userRoleFilter = { $or: [{ userId : { $in : wallet } },{ addedBy : { $in : wallet } },{ updatedBy : { $in : wallet } }] };
+      const userRoleCnt =  await dbService.count(UserRole,userRoleFilter);
+
+      let response = {
+        auth : authCnt,
+        earnings : earningsCnt,
+        admin : adminCnt,
+        user : userCnt,
+        asset : assetCnt,
+        assetCategory : assetCategoryCnt,
+        order : orderCnt,
+        state : stateCnt,
+        wallet : walletCnt,
+        walletTransaction : walletTransactionCnt,
+        userTokens : userTokensCnt,
+        role : roleCnt,
+        projectRoute : projectRouteCnt,
+        routeRole : routeRoleCnt,
+        userRole : userRoleCnt,
+      };
       return response; 
     } else {
       return {  wallet : 0 };
@@ -505,6 +593,24 @@ const countUserRole = async (filter) =>{
   }
 };
 
+const softDeleteAuth = async (filter,updateBody) =>{  
+  try {
+    const authCnt =  await dbService.updateMany(Auth,filter);
+    return { auth : authCnt };
+  } catch (error){
+    throw new Error(error.message);
+  }
+};
+
+const softDeleteEarnings = async (filter,updateBody) =>{  
+  try {
+    const earningsCnt =  await dbService.updateMany(Earnings,filter);
+    return { earnings : earningsCnt };
+  } catch (error){
+    throw new Error(error.message);
+  }
+};
+
 const softDeleteAdmin = async (filter,updateBody) =>{  
   try {
     const adminCnt =  await dbService.updateMany(Admin,filter);
@@ -520,60 +626,16 @@ const softDeleteUser = async (filter,updateBody) =>{
     if (user.length){
       user = user.map((obj) => obj.id);
 
-      const adminFilter = { '$or': [{ addedBy : { '$in' : user } },{ updatedBy : { '$in' : user } }] };
-      const adminCnt = await dbService.updateMany(Admin,adminFilter,updateBody);
+      const earningsFilter = { '$or': [{ userId : { '$in' : user } }] };
+      const earningsCnt = await dbService.updateMany(Earnings,earningsFilter,updateBody);
 
-      const userFilter = { '$or': [{ addedBy : { '$in' : user } },{ updatedBy : { '$in' : user } }] };
-      const userCnt = await dbService.updateMany(User,userFilter,updateBody);
-
-      const assetFilter = { '$or': [{ sellerId : { '$in' : user } },{ addedBy : { '$in' : user } },{ updatedBy : { '$in' : user } }] };
-      const assetCnt = await dbService.updateMany(Asset,assetFilter,updateBody);
-
-      const assetCategoryFilter = { '$or': [{ addedBy : { '$in' : user } },{ updatedBy : { '$in' : user } }] };
-      const assetCategoryCnt = await dbService.updateMany(AssetCategory,assetCategoryFilter,updateBody);
-
-      const orderFilter = { '$or': [{ addedBy : { '$in' : user } },{ updatedBy : { '$in' : user } }] };
-      const orderCnt = await dbService.updateMany(Order,orderFilter,updateBody);
-
-      const stateFilter = { '$or': [{ addedBy : { '$in' : user } },{ updatedBy : { '$in' : user } }] };
-      const stateCnt = await dbService.updateMany(State,stateFilter,updateBody);
-
-      const walletFilter = { '$or': [{ userId : { '$in' : user } },{ addedBy : { '$in' : user } },{ updatedBy : { '$in' : user } }] };
+      const walletFilter = { '$or': [{ userId : { '$in' : user } }] };
       const walletCnt = await dbService.updateMany(Wallet,walletFilter,updateBody);
-
-      const walletTransactionFilter = { '$or': [{ userId : { '$in' : user } },{ addedBy : { '$in' : user } },{ updatedBy : { '$in' : user } }] };
-      const walletTransactionCnt = await dbService.updateMany(WalletTransaction,walletTransactionFilter,updateBody);
-
-      const userTokensFilter = { '$or': [{ userId : { '$in' : user } },{ addedBy : { '$in' : user } },{ updatedBy : { '$in' : user } }] };
-      const userTokensCnt = await dbService.updateMany(UserTokens,userTokensFilter,updateBody);
-
-      const roleFilter = { '$or': [{ addedBy : { '$in' : user } },{ updatedBy : { '$in' : user } }] };
-      const roleCnt = await dbService.updateMany(Role,roleFilter,updateBody);
-
-      const projectRouteFilter = { '$or': [{ addedBy : { '$in' : user } },{ updatedBy : { '$in' : user } }] };
-      const projectRouteCnt = await dbService.updateMany(ProjectRoute,projectRouteFilter,updateBody);
-
-      const routeRoleFilter = { '$or': [{ addedBy : { '$in' : user } },{ updatedBy : { '$in' : user } }] };
-      const routeRoleCnt = await dbService.updateMany(RouteRole,routeRoleFilter,updateBody);
-
-      const userRoleFilter = { '$or': [{ userId : { '$in' : user } },{ addedBy : { '$in' : user } },{ updatedBy : { '$in' : user } }] };
-      const userRoleCnt = await dbService.updateMany(UserRole,userRoleFilter,updateBody);
       let updated = await dbService.updateMany(User,filter,updateBody);
 
       let response = {
-        admin :adminCnt,
-        user :userCnt + updated,
-        asset :assetCnt,
-        assetCategory :assetCategoryCnt,
-        order :orderCnt,
-        state :stateCnt,
+        earnings :earningsCnt,
         wallet :walletCnt,
-        walletTransaction :walletTransactionCnt,
-        userTokens :userTokensCnt,
-        role :roleCnt,
-        projectRoute :projectRouteCnt,
-        routeRole :routeRoleCnt,
-        userRole :userRoleCnt,
       };
       return response;
     } else {
@@ -586,8 +648,19 @@ const softDeleteUser = async (filter,updateBody) =>{
 
 const softDeleteAsset = async (filter,updateBody) =>{  
   try {
-    const assetCnt =  await dbService.updateMany(Asset,filter);
-    return { asset : assetCnt };
+    let asset = await dbService.findMany(Asset,filter, { id:1 });
+    if (asset.length){
+      asset = asset.map((obj) => obj.id);
+
+      const earningsFilter = { '$or': [{ assetId : { '$in' : asset } }] };
+      const earningsCnt = await dbService.updateMany(Earnings,earningsFilter,updateBody);
+      let updated = await dbService.updateMany(Asset,filter,updateBody);
+
+      let response = { earnings :earningsCnt, };
+      return response;
+    } else {
+      return {  asset : 0 };
+    }
   } catch (error){
     throw new Error(error.message);
   }
@@ -643,11 +716,69 @@ const softDeleteWallet = async (filter,updateBody) =>{
     if (wallet.length){
       wallet = wallet.map((obj) => obj.id);
 
-      const walletTransactionFilter = { '$or': [{ walletId : { '$in' : wallet } }] };
+      const authFilter = { '$or': [{ addedBy : { '$in' : wallet } },{ updatedBy : { '$in' : wallet } }] };
+      const authCnt = await dbService.updateMany(Auth,authFilter,updateBody);
+
+      const earningsFilter = { '$or': [{ addedBy : { '$in' : wallet } },{ updatedBy : { '$in' : wallet } }] };
+      const earningsCnt = await dbService.updateMany(Earnings,earningsFilter,updateBody);
+
+      const adminFilter = { '$or': [{ addedBy : { '$in' : wallet } },{ updatedBy : { '$in' : wallet } }] };
+      const adminCnt = await dbService.updateMany(Admin,adminFilter,updateBody);
+
+      const userFilter = { '$or': [{ addedBy : { '$in' : wallet } },{ updatedBy : { '$in' : wallet } }] };
+      const userCnt = await dbService.updateMany(User,userFilter,updateBody);
+
+      const assetFilter = { '$or': [{ addedBy : { '$in' : wallet } },{ updatedBy : { '$in' : wallet } }] };
+      const assetCnt = await dbService.updateMany(Asset,assetFilter,updateBody);
+
+      const assetCategoryFilter = { '$or': [{ addedBy : { '$in' : wallet } },{ updatedBy : { '$in' : wallet } }] };
+      const assetCategoryCnt = await dbService.updateMany(AssetCategory,assetCategoryFilter,updateBody);
+
+      const orderFilter = { '$or': [{ addedBy : { '$in' : wallet } },{ updatedBy : { '$in' : wallet } }] };
+      const orderCnt = await dbService.updateMany(Order,orderFilter,updateBody);
+
+      const stateFilter = { '$or': [{ addedBy : { '$in' : wallet } },{ updatedBy : { '$in' : wallet } }] };
+      const stateCnt = await dbService.updateMany(State,stateFilter,updateBody);
+
+      const walletFilter = { '$or': [{ addedBy : { '$in' : wallet } },{ updatedBy : { '$in' : wallet } }] };
+      const walletCnt = await dbService.updateMany(Wallet,walletFilter,updateBody);
+
+      const walletTransactionFilter = { '$or': [{ fromwalletId : { '$in' : wallet } },{ towalletId : { '$in' : wallet } },{ addedBy : { '$in' : wallet } },{ updatedBy : { '$in' : wallet } }] };
       const walletTransactionCnt = await dbService.updateMany(WalletTransaction,walletTransactionFilter,updateBody);
+
+      const userTokensFilter = { '$or': [{ userId : { '$in' : wallet } },{ addedBy : { '$in' : wallet } },{ updatedBy : { '$in' : wallet } }] };
+      const userTokensCnt = await dbService.updateMany(UserTokens,userTokensFilter,updateBody);
+
+      const roleFilter = { '$or': [{ addedBy : { '$in' : wallet } },{ updatedBy : { '$in' : wallet } }] };
+      const roleCnt = await dbService.updateMany(Role,roleFilter,updateBody);
+
+      const projectRouteFilter = { '$or': [{ addedBy : { '$in' : wallet } },{ updatedBy : { '$in' : wallet } }] };
+      const projectRouteCnt = await dbService.updateMany(ProjectRoute,projectRouteFilter,updateBody);
+
+      const routeRoleFilter = { '$or': [{ addedBy : { '$in' : wallet } },{ updatedBy : { '$in' : wallet } }] };
+      const routeRoleCnt = await dbService.updateMany(RouteRole,routeRoleFilter,updateBody);
+
+      const userRoleFilter = { '$or': [{ userId : { '$in' : wallet } },{ addedBy : { '$in' : wallet } },{ updatedBy : { '$in' : wallet } }] };
+      const userRoleCnt = await dbService.updateMany(UserRole,userRoleFilter,updateBody);
       let updated = await dbService.updateMany(Wallet,filter,updateBody);
 
-      let response = { walletTransaction :walletTransactionCnt, };
+      let response = {
+        auth :authCnt,
+        earnings :earningsCnt,
+        admin :adminCnt,
+        user :userCnt,
+        asset :assetCnt,
+        assetCategory :assetCategoryCnt,
+        order :orderCnt,
+        state :stateCnt,
+        wallet :walletCnt + updated,
+        walletTransaction :walletTransactionCnt,
+        userTokens :userTokensCnt,
+        role :roleCnt,
+        projectRoute :projectRouteCnt,
+        routeRole :routeRoleCnt,
+        userRole :userRoleCnt,
+      };
       return response;
     } else {
       return {  wallet : 0 };
@@ -749,6 +880,8 @@ const softDeleteUserRole = async (filter,updateBody) =>{
 };
 
 module.exports = {
+  deleteAuth,
+  deleteEarnings,
   deleteAdmin,
   deleteUser,
   deleteAsset,
@@ -763,6 +896,8 @@ module.exports = {
   deleteProjectRoute,
   deleteRouteRole,
   deleteUserRole,
+  countAuth,
+  countEarnings,
   countAdmin,
   countUser,
   countAsset,
@@ -777,6 +912,8 @@ module.exports = {
   countProjectRoute,
   countRouteRole,
   countUserRole,
+  softDeleteAuth,
+  softDeleteEarnings,
   softDeleteAdmin,
   softDeleteUser,
   softDeleteAsset,

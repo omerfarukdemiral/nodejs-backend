@@ -1,10 +1,9 @@
 /**
- * asset.js
- * @description :: model of a database collection asset
+ * auth.js
+ * @description :: model of a database collection auth
  */
 
 const mongoose = require('mongoose');
-const autoIncrement = require('mongoose-sequence')(mongoose);
 const mongoosePaginate = require('mongoose-paginate-v2');
 let idValidator = require('mongoose-id-validator');
 const myCustomLabels = {
@@ -23,31 +22,13 @@ const Schema = mongoose.Schema;
 const schema = new Schema(
   {
 
-    name:{ type:String },
+    userId:{ type:String },
 
-    pool:{
-      type:Number,
-      required:true,
-      unique:false
-    },
+    walletId:{ type:String },
 
-    minInvestment:{
-      unique:false,
-      type:Number,
-      required:true
-    },
+    accessToken:{ type:String },
 
-    maxInvestment:{ type:Number },
-
-    category:{
-      type:Schema.Types.ObjectId,
-      ref:'assetCategory'
-    },
-
-    subCategory:{
-      type:Schema.Types.ObjectId,
-      ref:'assetCategory'
-    },
+    isDeleted:{ type:Boolean },
 
     isActive:{ type:Boolean },
 
@@ -63,9 +44,7 @@ const schema = new Schema(
     updatedBy:{
       type:Schema.Types.ObjectId,
       ref:'wallet'
-    },
-
-    isDeleted:{ type:Boolean }
+    }
   }
   ,{ 
     timestamps: { 
@@ -101,5 +80,5 @@ schema.method('toJSON', function () {
 });
 schema.plugin(mongoosePaginate);
 schema.plugin(idValidator);
-const asset = mongoose.model('asset',schema);
-module.exports = asset;
+const auth = mongoose.model('auth',schema);
+module.exports = auth;

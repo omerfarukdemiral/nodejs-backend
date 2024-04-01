@@ -11,9 +11,9 @@ const {
 /** validation keys and properties of asset */
 exports.schemaKeys = joi.object({
   name: joi.string().allow(null).allow(''),
-  price: joi.number().integer().allow(0),
-  sellerId: joi.string().regex(/^[0-9a-fA-F]{24}$/).allow(null).allow(''),
-  brand: joi.string().allow(null).allow(''),
+  pool: joi.number().integer().required(),
+  minInvestment: joi.number().integer().required(),
+  maxInvestment: joi.number().integer().allow(0),
   category: joi.string().regex(/^[0-9a-fA-F]{24}$/).allow(null).allow(''),
   subCategory: joi.string().regex(/^[0-9a-fA-F]{24}$/).allow(null).allow(''),
   isActive: joi.boolean(),
@@ -23,9 +23,17 @@ exports.schemaKeys = joi.object({
 /** validation keys and properties of asset for updation */
 exports.updateSchemaKeys = joi.object({
   name: joi.string().allow(null).allow(''),
-  price: joi.number().integer().allow(0),
-  sellerId: joi.string().regex(/^[0-9a-fA-F]{24}$/).allow(null).allow(''),
-  brand: joi.string().allow(null).allow(''),
+  pool: joi.number().integer().when({
+    is:joi.exist(),
+    then:joi.required(),
+    otherwise:joi.optional()
+  }),
+  minInvestment: joi.number().integer().when({
+    is:joi.exist(),
+    then:joi.required(),
+    otherwise:joi.optional()
+  }),
+  maxInvestment: joi.number().integer().allow(0),
   category: joi.string().regex(/^[0-9a-fA-F]{24}$/).allow(null).allow(''),
   subCategory: joi.string().regex(/^[0-9a-fA-F]{24}$/).allow(null).allow(''),
   isActive: joi.boolean(),
@@ -40,9 +48,9 @@ exports.findFilterKeys = joi.object({
   ...Object.fromEntries(
     keys.map(key => [key, joi.object({
       name: joi.alternatives().try(joi.array().items(),joi.string(),joi.object()),
-      price: joi.alternatives().try(joi.array().items(),joi.number().integer(),joi.object()),
-      sellerId: joi.alternatives().try(joi.array().items(),joi.string().regex(/^[0-9a-fA-F]{24}$/),joi.object()),
-      brand: joi.alternatives().try(joi.array().items(),joi.string(),joi.object()),
+      pool: joi.alternatives().try(joi.array().items(),joi.number().integer(),joi.object()),
+      minInvestment: joi.alternatives().try(joi.array().items(),joi.number().integer(),joi.object()),
+      maxInvestment: joi.alternatives().try(joi.array().items(),joi.number().integer(),joi.object()),
       category: joi.alternatives().try(joi.array().items(),joi.string().regex(/^[0-9a-fA-F]{24}$/),joi.object()),
       subCategory: joi.alternatives().try(joi.array().items(),joi.string().regex(/^[0-9a-fA-F]{24}$/),joi.object()),
       isActive: joi.alternatives().try(joi.array().items(),joi.boolean(),joi.object()),

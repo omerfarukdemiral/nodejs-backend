@@ -24,7 +24,7 @@ const schema = new Schema(
 
     userId:{
       type:Schema.Types.ObjectId,
-      ref:'user'
+      ref:'wallet'
     },
 
     token:{ type:String },
@@ -40,12 +40,12 @@ const schema = new Schema(
 
     addedBy:{
       type:Schema.Types.ObjectId,
-      ref:'user'
+      ref:'wallet'
     },
 
     updatedBy:{
       type:Schema.Types.ObjectId,
-      ref:'user'
+      ref:'wallet'
     },
 
     createdAt:{ type:Date },

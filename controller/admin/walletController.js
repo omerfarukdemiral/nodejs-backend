@@ -8,8 +8,32 @@ const walletSchemaKey = require('../../utils/validation/walletValidation');
 const validation = require('../../utils/validateRequest');
 const dbService = require('../../utils/dbService');
 const ObjectId = require('mongodb').ObjectId;
+const auth = require('../../services/auth');
 const deleteDependentService = require('../../utils/deleteDependent');
 const utils = require('../../utils/common');
+
+/**
+ * @description : get information of logged-in User.
+ * @param {Object} req : authentication token is required
+ * @param {Object} res : Logged-in user information
+ * @return {Object} : Logged-in user information {status, message, data}
+ */
+const getLoggedInUserInfo = async (req, res) => {
+  try {
+    const query = {
+      _id: req.user.id,
+      isDeleted: false 
+    };
+    query.isActive = true;
+    let foundUser = await dbService.findOne(Wallet, query);
+    if (!foundUser) {
+      return res.recordNotFound();
+    }
+    return res.success({ data: foundUser });
+  } catch (error){
+    return res.internalServerError({ message:error.message });
+  }
+};
    
 /**
  * @description : create document of Wallet in mongodb collection.
@@ -81,6 +105,10 @@ const findAllWallet = async (req,res) => {
     }
     if (typeof req.body.query === 'object' && req.body.query !== null) {
       query = { ...req.body.query };
+    }
+    query._id = { $ne: req.user.id };
+    if (req.body && req.body.query && req.body.query._id) {
+      query._id.$in = [req.body.query._id];
     }
     if (req.body.isCountOnly){
       let totalRecords = await dbService.count(Wallet, query);
@@ -169,7 +197,12 @@ const updateWallet = async (req,res) => {
     if (!validateRequest.isValid) {
       return res.validationError({ message : `Invalid values in parameters, ${validateRequest.message}` });
     }
-    const query = { _id:req.params.id };
+    const query = {
+      _id: {
+        $eq: req.params.id,
+        $ne: req.user.id
+      }
+    };
     let updatedWallet = await dbService.updateOne(Wallet,query,dataToUpdate);
     if (!updatedWallet){
       return res.recordNotFound();
@@ -230,7 +263,12 @@ const partialUpdateWallet = async (req,res) => {
     if (!validateRequest.isValid) {
       return res.validationError({ message : `Invalid values in parameters, ${validateRequest.message}` });
     }
-    const query = { _id:req.params.id };
+    const query = {
+      _id: {
+        $eq: req.params.id,
+        $ne: req.user.id
+      }
+    };
     let updatedWallet = await dbService.updateOne(Wallet, query, dataToUpdate);
     if (!updatedWallet) {
       return res.recordNotFound();
@@ -252,7 +290,12 @@ const softDeleteWallet = async (req,res) => {
     if (!req.params.id){
       return res.badRequest({ message : 'Insufficient request parameters! id is required.' });
     }
-    const query = { _id:req.params.id };
+    const query = {
+      _id: {
+        $eq: req.params.id,
+        $ne: req.user.id
+      }
+    };
     const updateBody = {
       isDeleted: true,
       updatedBy: req.user.id,
@@ -278,7 +321,12 @@ const deleteWallet = async (req,res) => {
     if (!req.params.id){
       return res.badRequest({ message : 'Insufficient request parameters! id is required.' });
     }
-    const query = { _id:req.params.id };
+    const query = {
+      _id: {
+        $eq: req.params.id,
+        $ne: req.user.id
+      }
+    };
     let deletedWallet;
     if (req.body.isWarning) { 
       deletedWallet = await deleteDependentService.countWallet(query);
@@ -307,7 +355,12 @@ const deleteManyWallet = async (req, res) => {
     if (!ids || !Array.isArray(ids) || ids.length < 1) {
       return res.badRequest();
     }
-    const query = { _id:{ $in:ids } };
+    const query = {
+      _id: {
+        $in: ids,
+        $ne: req.user.id
+      }
+    };
     let deletedWallet;
     if (req.body.isWarning) {
       deletedWallet = await deleteDependentService.countWallet(query);
@@ -336,7 +389,12 @@ const softDeleteManyWallet = async (req,res) => {
     if (!ids || !Array.isArray(ids) || ids.length < 1) {
       return res.badRequest();
     }
-    const query = { _id:{ $in:ids } };
+    const query = {
+      _id: {
+        $in: ids,
+        $ne: req.user.id
+      }
+    };
     const updateBody = {
       isDeleted: true,
       updatedBy: req.user.id,
@@ -350,8 +408,69 @@ const softDeleteManyWallet = async (req,res) => {
     return res.internalServerError({ message:error.message }); 
   }
 };
-
+    
+/**
+ * @description : change password
+ * @param {Object} req : request including user credentials.
+ * @param {Object} res : response contains updated user document.
+ * @return {Object} : updated user document {status, message, data}
+ */
+const changePassword = async (req, res) => {
+  try {
+    let params = req.body;
+    if (!req.user.id || !params.newPassword || !params.oldPassword) {
+      return res.validationError({ message : 'Please Provide userId, new Password and Old password' });
+    }
+    let result = await auth.changePassword({
+      ...params,
+      userId:req.user.id
+    });
+    if (result.flag){
+      return res.failure({ message :result.data });
+    }
+    return res.success({ message : result.data });
+  } catch (error) {
+    return res.internalServerError({ message:error.message });
+  }
+};
+    
+/**
+ * @description : update user profile.
+ * @param {Object} req : request including user profile details to update in request body.
+ * @param {Object} res : updated user document.
+ * @return {Object} : updated user document. {status, message, data}
+ */
+const updateProfile = async (req, res) => {
+  try {
+    let data = req.body;
+    let validateRequest = validation.validateParamsWithJoi(
+      data,
+      walletSchemaKey.updateSchemaKeys
+    );
+    if (!validateRequest.isValid) {
+      return res.validationError({ message : `Invalid values in parameters, ${validateRequest.message}` });
+    }
+    delete data.password;
+    delete data.createdAt;
+    delete data.updatedAt;
+    if (data.id) delete data.id;
+    let result = await dbService.updateOne(Wallet,{ _id:req.user.id },data,{ new:true });
+    if (!result){
+      return res.recordNotFound();
+    }            
+    return res.success({ data :result });
+  } catch (error){
+    if (error.name === 'ValidationError'){
+      return res.validationError({ message : `Invalid Data, Validation Failed at ${ error.message}` });
+    }
+    if (error.code && error.code === 11000){
+      return res.validationError({ message : 'Data duplication found.' });
+    }
+    return res.internalServerError({ message:error.message });
+  }
+};
 module.exports = {
+  getLoggedInUserInfo,
   addWallet,
   bulkInsertWallet,
   findAllWallet,
@@ -363,5 +482,7 @@ module.exports = {
   softDeleteWallet,
   deleteWallet,
   deleteManyWallet,
-  softDeleteManyWallet    
+  softDeleteManyWallet,
+  changePassword,
+  updateProfile    
 };

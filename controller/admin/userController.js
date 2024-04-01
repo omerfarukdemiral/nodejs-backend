@@ -8,32 +8,13 @@ const userSchemaKey = require('../../utils/validation/userValidation');
 const validation = require('../../utils/validateRequest');
 const dbService = require('../../utils/dbService');
 const ObjectId = require('mongodb').ObjectId;
-const auth = require('../../services/auth');
 const deleteDependentService = require('../../utils/deleteDependent');
 const utils = require('../../utils/common');
 
-/**
- * @description : get information of logged-in User.
- * @param {Object} req : authentication token is required
- * @param {Object} res : Logged-in user information
- * @return {Object} : Logged-in user information {status, message, data}
- */
-const getLoggedInUserInfo = async (req, res) => {
-  try {
-    const query = {
-      _id: req.user.id,
-      isDeleted: false 
-    };
-    query.isActive = true;
-    let foundUser = await dbService.findOne(User, query);
-    if (!foundUser) {
-      return res.recordNotFound();
-    }
-    return res.success({ data: foundUser });
-  } catch (error){
-    return res.internalServerError({ message:error.message });
-  }
-};
+const common = require('../../utils/common');
+const Wallet = require('../../model/wallet');
+const walletSchemaKey = require('../../utils/validation/walletValidation');
+const orderConstant = require('../../constants/order'); 
    
 /**
  * @description : create document of User in mongodb collection.
@@ -44,19 +25,35 @@ const getLoggedInUserInfo = async (req, res) => {
 const addUser = async (req, res) => {
   try {
     let dataToCreate = { ...req.body || {} };
-    let validateRequest = validation.validateParamsWithJoi(
-      dataToCreate,
-      userSchemaKey.schemaKeys);
-    if (!validateRequest.isValid) {
-      return res.validationError({ message : `Invalid values in parameters, ${validateRequest.message}` });
-    }
-    dataToCreate.addedBy = req.user.id;
+    let validate = validation.validateParamsWithJoi(dataToCreate, userSchemaKey.schemaKeys);
+    if (!validate.isValid) {
+      return res.validationError({ message : `Invalid values in parameters, ${validate.message}` });
+    } 
     dataToCreate = new User(dataToCreate);
-    let createdUser = await dbService.create(User,dataToCreate);
-    return res.success({ data : createdUser });
-  } catch (error) {
-    return res.internalServerError({ message:error.message }); 
+    let createdResult = await dbService.create(User, dataToCreate);
+    if (createdResult) {   
+      let dataToCreate = { ...req.body || {} };
+      let validate = validation.validateParamsWithJoi(dataToCreate, walletSchemaKey.schemaKeys);
+      if (!validate.isValid) {
+        return res.validationError({ message : `Invalid values in parameters, ${validate.message}` });
+      } 
+      dataToCreate = new Wallet(dataToCreate);
+      let createdResult = await dbService.create(Wallet, dataToCreate);
+      if (createdResult) {   
+        return  res.success({ data : createdResult });
+      }
+      return res.badRequest();
+      return  res.success({ data : createdResult });
+    }
+    return res.badRequest();
+  } 
+  catch (error){ 
+    return  res.status(500).send({
+      message: 'Internal Server Error',
+      data: null 
+    });
   }
+
 };
     
 /**
@@ -105,10 +102,6 @@ const findAllUser = async (req,res) => {
     }
     if (typeof req.body.query === 'object' && req.body.query !== null) {
       query = { ...req.body.query };
-    }
-    query._id = { $ne: req.user.id };
-    if (req.body && req.body.query && req.body.query._id) {
-      query._id.$in = [req.body.query._id];
     }
     if (req.body.isCountOnly){
       let totalRecords = await dbService.count(User, query);
@@ -197,12 +190,7 @@ const updateUser = async (req,res) => {
     if (!validateRequest.isValid) {
       return res.validationError({ message : `Invalid values in parameters, ${validateRequest.message}` });
     }
-    const query = {
-      _id: {
-        $eq: req.params.id,
-        $ne: req.user.id
-      }
-    };
+    const query = { _id:req.params.id };
     let updatedUser = await dbService.updateOne(User,query,dataToUpdate);
     if (!updatedUser){
       return res.recordNotFound();
@@ -263,12 +251,7 @@ const partialUpdateUser = async (req,res) => {
     if (!validateRequest.isValid) {
       return res.validationError({ message : `Invalid values in parameters, ${validateRequest.message}` });
     }
-    const query = {
-      _id: {
-        $eq: req.params.id,
-        $ne: req.user.id
-      }
-    };
+    const query = { _id:req.params.id };
     let updatedUser = await dbService.updateOne(User, query, dataToUpdate);
     if (!updatedUser) {
       return res.recordNotFound();
@@ -290,12 +273,7 @@ const softDeleteUser = async (req,res) => {
     if (!req.params.id){
       return res.badRequest({ message : 'Insufficient request parameters! id is required.' });
     }
-    const query = {
-      _id: {
-        $eq: req.params.id,
-        $ne: req.user.id
-      }
-    };
+    const query = { _id:req.params.id };
     const updateBody = {
       isDeleted: true,
       updatedBy: req.user.id,
@@ -321,12 +299,7 @@ const deleteUser = async (req,res) => {
     if (!req.params.id){
       return res.badRequest({ message : 'Insufficient request parameters! id is required.' });
     }
-    const query = {
-      _id: {
-        $eq: req.params.id,
-        $ne: req.user.id
-      }
-    };
+    const query = { _id:req.params.id };
     let deletedUser;
     if (req.body.isWarning) { 
       deletedUser = await deleteDependentService.countUser(query);
@@ -355,12 +328,7 @@ const deleteManyUser = async (req, res) => {
     if (!ids || !Array.isArray(ids) || ids.length < 1) {
       return res.badRequest();
     }
-    const query = {
-      _id: {
-        $in: ids,
-        $ne: req.user.id
-      }
-    };
+    const query = { _id:{ $in:ids } };
     let deletedUser;
     if (req.body.isWarning) {
       deletedUser = await deleteDependentService.countUser(query);
@@ -389,12 +357,7 @@ const softDeleteManyUser = async (req,res) => {
     if (!ids || !Array.isArray(ids) || ids.length < 1) {
       return res.badRequest();
     }
-    const query = {
-      _id: {
-        $in: ids,
-        $ne: req.user.id
-      }
-    };
+    const query = { _id:{ $in:ids } };
     const updateBody = {
       isDeleted: true,
       updatedBy: req.user.id,
@@ -408,69 +371,8 @@ const softDeleteManyUser = async (req,res) => {
     return res.internalServerError({ message:error.message }); 
   }
 };
-    
-/**
- * @description : change password
- * @param {Object} req : request including user credentials.
- * @param {Object} res : response contains updated user document.
- * @return {Object} : updated user document {status, message, data}
- */
-const changePassword = async (req, res) => {
-  try {
-    let params = req.body;
-    if (!req.user.id || !params.newPassword || !params.oldPassword) {
-      return res.validationError({ message : 'Please Provide userId, new Password and Old password' });
-    }
-    let result = await auth.changePassword({
-      ...params,
-      userId:req.user.id
-    });
-    if (result.flag){
-      return res.failure({ message :result.data });
-    }
-    return res.success({ message : result.data });
-  } catch (error) {
-    return res.internalServerError({ message:error.message });
-  }
-};
-    
-/**
- * @description : update user profile.
- * @param {Object} req : request including user profile details to update in request body.
- * @param {Object} res : updated user document.
- * @return {Object} : updated user document. {status, message, data}
- */
-const updateProfile = async (req, res) => {
-  try {
-    let data = req.body;
-    let validateRequest = validation.validateParamsWithJoi(
-      data,
-      userSchemaKey.updateSchemaKeys
-    );
-    if (!validateRequest.isValid) {
-      return res.validationError({ message : `Invalid values in parameters, ${validateRequest.message}` });
-    }
-    delete data.password;
-    delete data.createdAt;
-    delete data.updatedAt;
-    if (data.id) delete data.id;
-    let result = await dbService.updateOne(User,{ _id:req.user.id },data,{ new:true });
-    if (!result){
-      return res.recordNotFound();
-    }            
-    return res.success({ data :result });
-  } catch (error){
-    if (error.name === 'ValidationError'){
-      return res.validationError({ message : `Invalid Data, Validation Failed at ${ error.message}` });
-    }
-    if (error.code && error.code === 11000){
-      return res.validationError({ message : 'Data duplication found.' });
-    }
-    return res.internalServerError({ message:error.message });
-  }
-};
+
 module.exports = {
-  getLoggedInUserInfo,
   addUser,
   bulkInsertUser,
   findAllUser,
@@ -482,7 +384,5 @@ module.exports = {
   softDeleteUser,
   deleteUser,
   deleteManyUser,
-  softDeleteManyUser,
-  changePassword,
-  updateProfile    
+  softDeleteManyUser    
 };

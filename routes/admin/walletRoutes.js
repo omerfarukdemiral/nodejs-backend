@@ -10,6 +10,7 @@ const { PLATFORM } =  require('../../constants/authConstant');
 const auth = require('../../middleware/auth');
 const checkRolePermission = require('../../middleware/checkRolePermission');
 
+router.route('/admin/wallet/me').get(auth(PLATFORM.ADMIN),walletController.getLoggedInUserInfo);
 router.route('/admin/wallet/create').post(auth(PLATFORM.ADMIN),checkRolePermission,walletController.addWallet);
 router.route('/admin/wallet/list').post(auth(PLATFORM.ADMIN),checkRolePermission,walletController.findAllWallet);
 router.route('/admin/wallet/count').post(auth(PLATFORM.ADMIN),checkRolePermission,walletController.getWalletCount);
@@ -22,5 +23,7 @@ router.route('/admin/wallet/addBulk').post(auth(PLATFORM.ADMIN),checkRolePermiss
 router.route('/admin/wallet/updateBulk').put(auth(PLATFORM.ADMIN),checkRolePermission,walletController.bulkUpdateWallet);
 router.route('/admin/wallet/delete/:id').delete(auth(PLATFORM.ADMIN),checkRolePermission,walletController.deleteWallet);
 router.route('/admin/wallet/deleteMany').post(auth(PLATFORM.ADMIN),checkRolePermission,walletController.deleteManyWallet);
+router.route('/admin/wallet/change-password').put(auth(PLATFORM.ADMIN),walletController.changePassword);
+router.route('/admin/wallet/update-profile').put(auth(PLATFORM.ADMIN),walletController.updateProfile);
 
 module.exports = router;

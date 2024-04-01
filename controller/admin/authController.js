@@ -3,11 +3,11 @@
  * @description :: exports authentication methods
  */
 
-const User = require('../../model/user');
+const Wallet = require('../../model/wallet');
 const dbService = require('../../utils/dbService');
 const userTokens = require('../../model/userTokens');
 const dayjs = require('dayjs');
-const userSchemaKey = require('../../utils/validation/userValidation');
+const walletSchemaKey = require('../../utils/validation/walletValidation');
 const validation = require('../../utils/validateRequest');
 const authConstant = require('../../constants/authConstant');
 const authService =  require('../../services/auth');
@@ -23,7 +23,7 @@ const register = async (req,res) =>{
   try {
     let validateRequest = validation.validateParamsWithJoi(
       req.body,
-      userSchemaKey.schemaKeys
+      walletSchemaKey.schemaKeys
     );
     if (!validateRequest.isValid) {
       return res.validationError({ message :  `Invalid values in parameters, ${validateRequest.message}` });
@@ -33,17 +33,17 @@ const register = async (req,res) =>{
       isEmptyPassword = true;
       req.body.password = Math.random().toString(36).slice(2);
     }
-    const data = new User({
+    const data = new Wallet({
       ...req.body,
       userType: authConstant.USER_TYPES.User
     });
 
-    let checkUniqueFields = await common.checkUniqueFieldsInDatabase(User,[ 'username', 'email' ],data,'REGISTER');
+    let checkUniqueFields = await common.checkUniqueFieldsInDatabase(Wallet,[ 'walletAddress' ],data,'INSERT');
     if (checkUniqueFields.isDuplicate){
       return res.validationError({ message : `${checkUniqueFields.value} already exists.Unique ${checkUniqueFields.field} are allowed.` });
     }
 
-    const result = await dbService.create(User,data);
+    const result = await dbService.create(Wallet,data);
     if (isEmptyPassword && req.body.email){
       await authService.sendPasswordByEmail({
         email: req.body.email,
@@ -95,8 +95,8 @@ const loginWithOTP = async (req, res) => {
     if (!params.code || !params.username) {
       return res.badRequest({ message : 'Insufficient request parameters! username and code is required.' });
     }
-    let where = { $or:[{ username:params.username },{ email:params.username }] };
-    where.isActive = true;where.isDeleted = false;            let user = await dbService.findOne(User,where);
+    let where = { 'walletAddress':params.username };
+    where.isActive = true;where.isDeleted = false;            let user = await dbService.findOne(Wallet,where);
     if (!user || !user.loginOTP.expireTime) {
       return res.badRequest({ message :'Invalid Code' });
     }
@@ -165,7 +165,7 @@ const forgotPassword = async (req,res) => {
     }
     let where = { email: params.email };
     where.isActive = true;where.isDeleted = false;            params.email = params.email.toString().toLowerCase();
-    let found = await dbService.findOne(User,where);
+    let found = await dbService.findOne(Wallet,where);
     if (!found) {
       return res.recordNotFound();
     }
@@ -203,14 +203,14 @@ const validateResetPasswordOtp = async (req,res) =>{
       isActive: true,
       isDeleted: false,            
     };
-    let found = await dbService.findOne(User, where);
+    let found = await dbService.findOne(Wallet, where);
     if (!found || !found.resetPasswordLink.expireTime) {
       return res.failure({ message :'Invalid OTP' });
     }
     if (dayjs(new Date()).isAfter(dayjs(found.resetPasswordLink.expireTime))) {
       return res.failure( { message :'Your reset password link is expired or invalid' });
     }
-    await dbService.updateOne(User, found.id, { resetPasswordLink: {} });
+    await dbService.updateOne(Wallet, found.id, { resetPasswordLink: {} });
     return res.success({ message :'OTP verified' });
   } catch (error) {
     return res.internalServerError({ data:error.message }); 
@@ -234,7 +234,7 @@ const resetPassword = async (req,res) => {
       isActive: true,
       isDeleted: false,            
     };
-    let found = await dbService.findOne(User, where);
+    let found = await dbService.findOne(Wallet, where);
     if (!found || !found.resetPasswordLink.expireTime) {
       return res.failure({ message :'Invalid Code' });
     }
